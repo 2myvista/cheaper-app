@@ -82,6 +82,91 @@ fun HistoryScreen(
 				modifier = Modifier.fillMaxWidth(),
 				verticalArrangement = Arrangement.spacedBy(12.dp)
 			) {
+				val groupedHistory = history.withIndex()
+					.groupBy { (_, item) ->
+						item.dateTime.substringBefore(' ')
+					}
+
+				groupedHistory.forEach { (date, indexedItems) ->
+
+					item {
+						Text("======= $date")
+					}
+
+					itemsIndexed(indexedItems) { _, indexedItem ->
+						val index = indexedItem.index
+						val item = indexedItem.value
+
+						Card(
+							modifier = Modifier
+								.fillMaxWidth()
+								.clickable {
+									onItemClick(item)
+								},
+							border = BorderStroke(
+								1.dp,
+								Color.LightGray
+							)
+						) {
+							Column(
+								modifier = Modifier.padding(12.dp),
+								verticalArrangement = Arrangement.spacedBy(4.dp)
+							) {
+								Row(
+									modifier = Modifier.fillMaxWidth(),
+									horizontalArrangement = Arrangement.SpaceBetween
+								) {
+									Column(
+										modifier = Modifier.weight(1f),
+										verticalArrangement = Arrangement.spacedBy(4.dp)
+									) {
+										if (item.comparisonName.isNotBlank()) {
+											Text(item.comparisonName)
+										}
+
+										Text(item.dateTime)
+										Text("Единица: ${item.unit}")
+									}
+
+									IconButton(
+										onClick = {
+											historyStorage.delete(index)
+											history = historyStorage.getAll()
+										}
+									) {
+										Icon(
+											imageVector = Icons.Default.Delete,
+											contentDescription = "Удалить"
+										)
+									}
+								}
+
+								Text(
+									"Товар 1: ${formatNumber(item.price1)} ₽ / " +
+											"${formatNumber(item.quantity1)} ${item.unit} = " +
+											"%.2f ₽/%s".format(
+												item.resultPrice1,
+												item.unit
+											)
+								)
+
+								Text(
+									"Товар 2: ${formatNumber(item.price2)} ₽ / " +
+											"${formatNumber(item.quantity2)} ${item.unit} = " +
+											"%.2f ₽/%s".format(
+												item.resultPrice2,
+												item.unit
+											)
+								)
+							}
+						}
+					}
+				}
+			}
+			/*LazyColumn(
+				modifier = Modifier.fillMaxWidth(),
+				verticalArrangement = Arrangement.spacedBy(12.dp)
+			) {
 				itemsIndexed(history) { index, item ->
 					Card(
 						modifier = Modifier
@@ -147,7 +232,7 @@ fun HistoryScreen(
 						}
 					}
 				}
-			}
+			}*/
 		}
 	}
 

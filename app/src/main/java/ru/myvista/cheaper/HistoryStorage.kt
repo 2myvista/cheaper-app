@@ -16,6 +16,12 @@ data class HistoryItem(
 	val resultPrice2: Double
 )
 
+// TODO: При переходе истории на БД хранить created_at как дату/время
+
+// - хранить created_at как дату/время;
+// - получать записи с сортировкой по created_at DESC;
+// - группировать историю по дням на уровне UI.
+
 class HistoryStorage(private val context: Context) {
 
 	private val preferences =
