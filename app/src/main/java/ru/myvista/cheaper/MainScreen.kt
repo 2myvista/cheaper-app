@@ -32,9 +32,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Checkbox
+import androidx.compose.ui.unit.sp
 
-
-import androidx.compose.foundation.background
 // остальные import...
 
 fun formatNumber(value: Double): String {
@@ -64,6 +64,8 @@ fun MainScreen(
 
 	unit: String,
 	onUnitChange: (String) -> Unit,
+	unitIsDefault: Boolean,
+	onUnitDefaultChange: (Boolean) -> Unit,
 
 	comparisonName: String,
 	onComparisonNameChange: (String) -> Unit,
@@ -126,7 +128,7 @@ fun MainScreen(
 		verticalArrangement = Arrangement.spacedBy(12.dp)
 	) {
 
-		Text("Что дешевле")
+		Text("Что дешевле?")
 
 		OutlinedTextField(
 			value = comparisonName,
@@ -140,53 +142,134 @@ fun MainScreen(
 			modifier = Modifier.fillMaxWidth()
 		)
 
+
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
 			verticalAlignment = Alignment.CenterVertically
-		) {
+		)
+		{
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Row(
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Box {
+						OutlinedButton(
+							onClick = { expanded = true }
+						) {
+							Text("Единица: $unit")
+						}
 
-			Box {
-
-				OutlinedButton(
-					onClick = {
-						expanded = true
+						DropdownMenu(
+							expanded = expanded,
+							onDismissRequest = { expanded = false }
+						) {
+							units.forEach { item ->
+								DropdownMenuItem(
+									text = { Text(item) },
+									onClick = {
+										onUnitChange(item)
+										onUnitDefaultChange(false)
+										expanded = false
+									}
+								)
+							}
+						}
 					}
+
+					Row(
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Checkbox(
+							checked = unitIsDefault,
+							onCheckedChange = onUnitDefaultChange
+						)
+
+						Text(
+							text = "По умолчанию",
+							fontSize = 11.sp,
+							color = Color.Gray
+						)
+					}
+				}
+
+				Row(
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					IconButton(onClick = onHistoryClick) {
+						Icon(
+							imageVector = Icons.Default.History,
+							contentDescription = "История"
+						)
+					}
+				}
+			}
+		}
+		/*{
+			Box {
+				OutlinedButton(
+					onClick = { expanded = true }
 				) {
 					Text("Единица: $unit")
 				}
 
 				DropdownMenu(
 					expanded = expanded,
-					onDismissRequest = {
-						expanded = false
-					}
+					onDismissRequest = { expanded = false }
 				) {
-
 					units.forEach { item ->
-
 						DropdownMenuItem(
-							text = {
-								Text(item)
-							},
+							text = { Text(item) },
 							onClick = {
 								onUnitChange(item)
+								onUnitDefaultChange(false)
 								expanded = false
 							}
 						)
 					}
 				}
 			}
-
-			IconButton(
-				onClick = onHistoryClick
+			Row(
+				verticalAlignment = Alignment.CenterVertically
 			) {
-				Icon(
-					imageVector = Icons.Default.History,
-					contentDescription = "История"
+				Checkbox(
+					checked = unitIsDefault,
+					onCheckedChange = onUnitDefaultChange
+				)
+
+				Text(
+					text = "По умолчанию",
+					fontSize = 11.sp,
+					color = Color.Gray
 				)
 			}
-		}
+			Row(
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				IconButton(
+					onClick = onHistoryClick
+				) {
+					Icon(
+						imageVector = Icons.Default.History,
+						contentDescription = "История"
+					)
+				}
+
+				IconButton(
+					onClick = onSettingsClick
+				) {
+					Icon(
+						imageVector = Icons.Default.Settings,
+						contentDescription = "Настройки"
+					)
+				}
+			}
+		}*/
+
 
 		Column(
 			modifier = Modifier
@@ -342,12 +425,10 @@ fun MainScreen(
 					historyStorage.save(
 						HistoryItem(
 							comparisonName = comparisonName,
-							dateTime = java.time.LocalDateTime.now()
-								.format(
-									java.time.format.DateTimeFormatter.ofPattern(
-										"dd-MM-yyyy HH:mm:ss"
-									)
-								),
+							dateTime = java.text.SimpleDateFormat(
+								"dd-MM-yyyy HH:mm:ss",
+								java.util.Locale.getDefault()
+							).format(java.util.Date()),
 							unit = unit,
 							price1 = price1Value,
 							quantity1 = quantity1Value,

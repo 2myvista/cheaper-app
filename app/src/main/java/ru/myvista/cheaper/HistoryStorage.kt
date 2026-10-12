@@ -3,6 +3,7 @@ package ru.myvista.cheaper
 import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
+import androidx.core.content.edit
 
 data class HistoryItem(
 	val comparisonName: String,
@@ -22,15 +23,15 @@ data class HistoryItem(
 // - получать записи с сортировкой по created_at DESC;
 // - группировать историю по дням на уровне UI.
 
-class HistoryStorage(private val context: Context) {
+class HistoryStorage(context: Context) {
 
 	private val preferences =
 		context.getSharedPreferences("history", Context.MODE_PRIVATE)
 
 	fun clear() {
-		preferences.edit()
-			.remove("items")
-			.apply()
+		preferences.edit {
+			remove("items")
+		}
 	}
 
 	fun delete(index: Int) {
@@ -60,9 +61,9 @@ class HistoryStorage(private val context: Context) {
 			jsonArray.put(json)
 		}
 
-		preferences.edit()
-			.putString("items", jsonArray.toString())
-			.apply()
+		preferences.edit {
+			putString("items", jsonArray.toString())
+		}
 	}
 
 	fun save(item: HistoryItem) {
@@ -92,9 +93,9 @@ class HistoryStorage(private val context: Context) {
 			jsonArray.put(json)
 		}
 
-		preferences.edit()
-			.putString("items", jsonArray.toString())
-			.apply()
+		preferences.edit {
+			putString("items", jsonArray.toString())
+		}
 	}
 
 	fun getAll(): List<HistoryItem> {

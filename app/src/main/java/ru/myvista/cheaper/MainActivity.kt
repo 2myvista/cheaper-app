@@ -1,33 +1,50 @@
-
 package ru.myvista.cheaper
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import ru.myvista.cheaper.ui.theme.ЧтоДешевлеTheme
+import android.util.Log
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import ru.myvista.cheaper.data.DatabaseProvider
+import ru.myvista.cheaper.data.DatabaseInitializer
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CoroutineScope
+
+// TODO: При первом запуске приложения открыть экран «Настройки».
+// Пользователь должен сначала настроить единицы измерения и основные параметры,
+// после чего перейти к основным экранам приложения.
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val database = DatabaseProvider.getDatabase(applicationContext)
+                DatabaseInitializer(database).initialize()
+
+                database.openHelper.writableDatabase
+
+                Log.d("CheaperDB", "База данных Room успешно открыта")
+            } catch (e: Exception) {
+                Log.e("CheaperDB", "Ошибка открытия базы данных Room", e)
+            }
+        }
 
         setContent {
             ЧтоДешевлеTheme {
@@ -37,9 +54,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppScreen() {
+    val context = LocalContext.current
+
+    val database = remember(context) {
+        DatabaseProvider.getDatabase(context)
+    }
 
     var showHistory by remember {
         mutableStateOf(false)
@@ -51,7 +72,28 @@ fun AppScreen() {
 
     // Состояние "Что дешевле"
     var unit by remember {
-        mutableStateOf("кг")
+        mutableStateOf<String?>(null)
+    }
+    var unitIsDefault by remember {
+        mutableStateOf(true)
+    }
+
+    LaunchedEffect(database) {
+        val settings = database.settingsDao()
+            .getSettings()
+            .filterNotNull()
+            .first()
+
+        val units = database.unitDao()
+            .getAll()
+            .first()
+
+        val defaultUnit = units.firstOrNull {
+            it.id == settings.defaultUnitId
+        }
+
+        unit = defaultUnit?.name ?: "кг"
+        unitIsDefault = defaultUnit != null
     }
 
     var comparisonName by remember {
@@ -87,27 +129,48 @@ fun AppScreen() {
         mutableStateOf("55")
     }
 
+    var tankCapacityIsDefault by remember {
+        mutableStateOf(false)
+    }
+
     var fuelPercent by remember {
         mutableStateOf("55")
+    }
+
+    LaunchedEffect(database) {
+        val settings = database.settingsDao()
+            .getSettings()
+            .filterNotNull()
+            .first()
+
+        tankCapacity = if (settings.tankCapacity > 0) {
+            settings.tankCapacity.toString()
+        } else {
+            ""
+        }
+
+        tankCapacityIsDefault = settings.tankCapacity > 0
+        fuelPercent = ""
     }
 
     var fuelResult by remember {
         mutableStateOf("")
     }
 
-    if (showHistory) {
+    if (unit == null && !showHistory) {
+        return
+    }
 
+    if (showHistory) {
         HistoryScreen(
-            onBackClick = {
-                showHistory = false
-            },
+            onBackClick = { showHistory = false },
             onItemClick = { item ->
                 selectedHistoryItem = item
                 showHistory = false
             }
         )
-
     } else {
+
 
         val pagerState = rememberPagerState(
             initialPage = 0,
@@ -131,9 +194,31 @@ fun AppScreen() {
                         selectedHistoryItem = null
                     },
 
-                    unit = unit,
+                    unit = unit ?: "кг",
                     onUnitChange = {
                         unit = it
+                    },
+
+                    unitIsDefault = unitIsDefault,
+                    onUnitDefaultChange = { checked ->
+                        unitIsDefault = checked
+
+                        if (checked) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val units = database.unitDao()
+                                    .getAll()
+                                    .first()
+
+                                val selectedUnit = units.firstOrNull {
+                                    it.name == unit
+                                }
+
+                                if (selectedUnit != null) {
+                                    database.settingsDao()
+                                        .updateDefaultUnit(selectedUnit.id)
+                                }
+                            }
+                        }
                     },
 
                     comparisonName = comparisonName,
@@ -174,95 +259,32 @@ fun AppScreen() {
 
                 1 -> FuelScreen(
                     tankCapacity = tankCapacity,
-                    onTankCapacityChange = {
-                        tankCapacity = it
+                    onTankCapacityChange = { tankCapacity = it },
+
+                    tankCapacityIsDefault = tankCapacityIsDefault,
+                    onTankCapacityDefaultChange = { checked ->
+                        tankCapacityIsDefault = checked
+
+                        if (checked) {
+                            val capacity = tankCapacity.toDoubleOrNull()
+
+                            if (capacity != null && capacity > 0) {
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    database.settingsDao()
+                                        .updateTankCapacity(capacity)
+                                }
+                            }
+                        }
                     },
 
                     fuelPercent = fuelPercent,
-                    onFuelPercentChange = {
-                        fuelPercent = it
-                    },
+                    onFuelPercentChange = { fuelPercent = it },
 
                     result = fuelResult,
-                    onResultChange = {
-                        fuelResult = it
-                    }
+                    onResultChange = { fuelResult = it }
                 )
             }
         }
     }
 }
 
-@Composable
-fun FuelScreen(
-    tankCapacity: String,
-    onTankCapacityChange: (String) -> Unit,
-    fuelPercent: String,
-    onFuelPercentChange: (String) -> Unit,
-    result: String,
-    onResultChange: (String) -> Unit
-) {
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-
-        Text("Бензин")
-
-        OutlinedTextField(
-            value = tankCapacity,
-            onValueChange = onTankCapacityChange,
-            label = {
-                Text("Объём бака, л")
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = fuelPercent,
-            onValueChange = onFuelPercentChange,
-            label = {
-                Text("Заполнено, %")
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Button(
-            onClick = {
-
-                val capacity = tankCapacity.toDoubleOrNull()
-                val percent = fuelPercent.toDoubleOrNull()
-
-                if (capacity != null && percent != null) {
-
-                    val liters =
-                        capacity * (100 - percent) / 100
-
-                    onResultChange(
-                        "Нужно залить: %.2f л".format(liters)
-                    )
-                }
-            },
-
-            enabled =
-                tankCapacity.toDoubleOrNull()?.let {
-                    it > 0
-                } == true &&
-                        fuelPercent.toDoubleOrNull()?.let {
-                            it in 0.0..100.0
-                        } == true,
-
-            modifier = Modifier.fillMaxWidth()
-
-        ) {
-            Text("Рассчитать")
-        }
-
-        if (result.isNotEmpty()) {
-            Text(result)
-        }
-    }
-}

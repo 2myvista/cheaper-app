@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.outlined.ThumbUp
 
 @Composable
 fun HistoryScreen(
@@ -125,7 +126,6 @@ fun HistoryScreen(
 										}
 
 										Text(item.dateTime)
-										Text("Единица: ${item.unit}")
 									}
 
 									IconButton(
@@ -141,23 +141,46 @@ fun HistoryScreen(
 									}
 								}
 
-								Text(
-									"Товар 1: ${formatNumber(item.price1)} ₽ / " +
-											"${formatNumber(item.quantity1)} ${item.unit} = " +
-											"%.2f ₽/%s".format(
-												item.resultPrice1,
-												item.unit
-											)
-								)
+								Row(
+									modifier = Modifier.fillMaxWidth(),
+									horizontalArrangement = Arrangement.SpaceBetween,
+									verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+								) {
+									Text(
+										"Товар 1: ${formatNumber(item.price1)} ₽ / " +
+												"${formatNumber(item.quantity1)} ${item.unit} = " +
+												"%.2f ₽/%s".format(item.resultPrice1, item.unit),
+										modifier = Modifier.weight(1f)
+									)
 
-								Text(
-									"Товар 2: ${formatNumber(item.price2)} ₽ / " +
-											"${formatNumber(item.quantity2)} ${item.unit} = " +
-											"%.2f ₽/%s".format(
-												item.resultPrice2,
-												item.unit
-											)
-								)
+									if (item.resultPrice1 < item.resultPrice2) {
+										Icon(
+											imageVector = Icons.Outlined.ThumbUp,
+											contentDescription = "Товар дешевле",
+											tint = Color(0xFF2E7D32)
+										)
+									}
+								}
+								Row(
+									modifier = Modifier.fillMaxWidth(),
+									horizontalArrangement = Arrangement.SpaceBetween,
+									verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+								) {
+									Text(
+										"Товар 2: ${formatNumber(item.price2)} ₽ / " +
+												"${formatNumber(item.quantity2)} ${item.unit} = " +
+												"%.2f ₽/%s".format(item.resultPrice2, item.unit),
+										modifier = Modifier.weight(1f)
+									)
+
+									if (item.resultPrice2 < item.resultPrice1) {
+										Icon(
+											imageVector = Icons.Outlined.ThumbUp,
+											contentDescription = "Товар дешевле",
+											tint = Color(0xFF2E7D32)
+										)
+									}
+								}
 							}
 						}
 					}
