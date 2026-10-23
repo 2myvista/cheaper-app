@@ -344,28 +344,37 @@ fun MainScreen(
 					quantity1Value > 0 &&
 					quantity2Value > 0
 				) {
-					val result1 = price1Value / quantity1Value
-					val result2 = price2Value / quantity2Value
-
-					onResultPrice1Change(result1)
-					onResultPrice2Change(result2)
-
-					historyStorage.save(
-						HistoryItem(
-							comparisonName = comparisonName,
-							dateTime = java.text.SimpleDateFormat(
-								"dd-MM-yyyy HH:mm:ss",
-								java.util.Locale.getDefault()
-							).format(java.util.Date()),
-							unit = unit,
-							price1 = price1Value,
-							quantity1 = quantity1Value,
-							price2 = price2Value,
-							quantity2 = quantity2Value,
-							resultPrice1 = result1,
-							resultPrice2 = result2
-						)
+					val result = PriceCalculator.calculate(
+						price1 = price1Value,
+						quantity1 = quantity1Value,
+						price2 = price2Value,
+						quantity2 = quantity2Value
 					)
+
+					if (result != null) {
+						val result1 = result.resultPrice1
+						val result2 = result.resultPrice2
+
+						onResultPrice1Change(result1)
+						onResultPrice2Change(result2)
+
+						historyStorage.save(
+							HistoryItem(
+								comparisonName = comparisonName,
+								dateTime = java.text.SimpleDateFormat(
+									"dd-MM-yyyy HH:mm:ss",
+									java.util.Locale.getDefault()
+								).format(java.util.Date()),
+								unit = unit,
+								price1 = price1Value,
+								quantity1 = quantity1Value,
+								price2 = price2Value,
+								quantity2 = quantity2Value,
+								resultPrice1 = result1,
+								resultPrice2 = result2
+							)
+						)
+					}
 				}
 			},
 			enabled =
