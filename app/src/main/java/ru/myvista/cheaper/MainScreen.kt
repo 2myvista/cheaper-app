@@ -2,40 +2,38 @@
 package ru.myvista.cheaper
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.Checkbox
-import androidx.compose.ui.unit.sp
-
-// остальные import...
+import ru.myvista.cheaper.ui.theme.AppOutlinedTextField
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.foundation.layout.Box
 
 fun formatNumber(value: Double): String {
 	return if (value % 1.0 == 0.0) {
@@ -53,58 +51,51 @@ fun isValidNumber(value: String): Boolean {
 	}
 
 	val decimalPart = value.substringAfter('.', "")
-
 	return decimalPart.length <= 5
 }
+
 @Composable
 fun MainScreen(
 	onHistoryClick: () -> Unit,
 	historyItem: HistoryItem?,
 	onHistoryItemApplied: () -> Unit,
-
 	unit: String,
 	onUnitChange: (String) -> Unit,
 	unitIsDefault: Boolean,
 	onUnitDefaultChange: (Boolean) -> Unit,
-
 	comparisonName: String,
 	onComparisonNameChange: (String) -> Unit,
-
 	price1: String,
 	onPrice1Change: (String) -> Unit,
-
 	quantity1: String,
 	onQuantity1Change: (String) -> Unit,
-
 	price2: String,
 	onPrice2Change: (String) -> Unit,
-
 	quantity2: String,
 	onQuantity2Change: (String) -> Unit,
-
 	resultPrice1: Double?,
 	onResultPrice1Change: (Double?) -> Unit,
-
 	resultPrice2: Double?,
-	onResultPrice2Change: (Double?) -> Unit
+	onResultPrice2Change: (Double?) -> Unit,
+	units: SnapshotStateList<String>,
+	onUnitOrderChange: (List<String>) -> Unit,
+	onAddUnit: (String) -> Unit,
 ) {
-
 	val context = LocalContext.current
+	val historyStorage = remember { HistoryStorage(context) }
 
-	val historyStorage = remember {
-		HistoryStorage(context)
-	}
+	val colors = MaterialTheme.colorScheme
+	val focusManager = LocalFocusManager.current
 
-	var expanded by remember {
-		mutableStateOf(false)
-	}
-
-	val units = listOf("г", "кг", "мл", "л", "шт")
+	val cheaperBackground =
+		if (MaterialTheme.colorScheme.background == Color(0xFF171D1A)) {
+			Color(0xFF294536)
+		} else {
+			Color(0xFFB1E3B3)
+		}
 
 	LaunchedEffect(historyItem) {
-
 		historyItem?.let { item ->
-
 			onComparisonNameChange(item.comparisonName)
 			onUnitChange(item.unit)
 
@@ -121,155 +112,73 @@ fun MainScreen(
 		}
 	}
 
+	val scrollState = rememberScrollState()
+
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
+			.background(colors.background)
+			.clickable(
+				interactionSource = remember {
+					MutableInteractionSource()
+				},
+				indication = null
+			) {
+				focusManager.clearFocus()
+			}
+			.verticalScroll(scrollState)
 			.padding(16.dp),
 		verticalArrangement = Arrangement.spacedBy(12.dp)
 	) {
+		Text(
+			text = "Что дешевле?",
+			color = colors.onBackground
+		)
 
-		Text("Что дешевле?")
-
-		OutlinedTextField(
+		AppOutlinedTextField(
 			value = comparisonName,
 			onValueChange = onComparisonNameChange,
-			label = {
-				Text("Название сравнения, необязательно")
-			},
+			label = "Название сравнения, необязательно",
 			keyboardOptions = KeyboardOptions(
 				keyboardType = KeyboardType.Text
 			),
 			modifier = Modifier.fillMaxWidth()
 		)
 
-
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
 			verticalAlignment = Alignment.CenterVertically
-		)
-		{
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
+		) {
+			Box(
+				modifier = Modifier.weight(1f)
 			) {
-				Row(
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Box {
-						OutlinedButton(
-							onClick = { expanded = true }
-						) {
-							Text("Единица: $unit")
-						}
-
-						DropdownMenu(
-							expanded = expanded,
-							onDismissRequest = { expanded = false }
-						) {
-							units.forEach { item ->
-								DropdownMenuItem(
-									text = { Text(item) },
-									onClick = {
-										onUnitChange(item)
-										onUnitDefaultChange(false)
-										expanded = false
-									}
-								)
-							}
-						}
-					}
-
-					Row(
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						Checkbox(
-							checked = unitIsDefault,
-							onCheckedChange = onUnitDefaultChange
-						)
-
-						Text(
-							text = "По умолчанию",
-							fontSize = 11.sp,
-							color = Color.Gray
-						)
-					}
+				UnitSelectorRow(
+					unit = unit,
+					units = units,
+					unitIsDefault = unitIsDefault,
+					onUnitChange = onUnitChange,
+					onUnitDefaultChange = { checked ->
+						onUnitDefaultChange(checked)
+						focusManager.clearFocus()
+					},
+					onUnitOrderChange = onUnitOrderChange,
+					onAddUnit = onAddUnit
+				)
+			}
+			IconButton(
+				onClick = {
+					focusManager.clearFocus()
+					onHistoryClick()
 				}
-
-				Row(
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					IconButton(onClick = onHistoryClick) {
-						Icon(
-							imageVector = Icons.Default.History,
-							contentDescription = "История"
-						)
-					}
-				}
+			) {
+				Icon(
+					imageVector = Icons.Default.History,
+					contentDescription = "История",
+					tint = colors.onSurface
+				)
 			}
 		}
-		/*{
-			Box {
-				OutlinedButton(
-					onClick = { expanded = true }
-				) {
-					Text("Единица: $unit")
-				}
-
-				DropdownMenu(
-					expanded = expanded,
-					onDismissRequest = { expanded = false }
-				) {
-					units.forEach { item ->
-						DropdownMenuItem(
-							text = { Text(item) },
-							onClick = {
-								onUnitChange(item)
-								onUnitDefaultChange(false)
-								expanded = false
-							}
-						)
-					}
-				}
-			}
-			Row(
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				Checkbox(
-					checked = unitIsDefault,
-					onCheckedChange = onUnitDefaultChange
-				)
-
-				Text(
-					text = "По умолчанию",
-					fontSize = 11.sp,
-					color = Color.Gray
-				)
-			}
-			Row(
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				IconButton(
-					onClick = onHistoryClick
-				) {
-					Icon(
-						imageVector = Icons.Default.History,
-						contentDescription = "История"
-					)
-				}
-
-				IconButton(
-					onClick = onSettingsClick
-				) {
-					Icon(
-						imageVector = Icons.Default.Settings,
-						contentDescription = "Настройки"
-					)
-				}
-			}
-		}*/
-
 
 		Column(
 			modifier = Modifier
@@ -280,7 +189,7 @@ fun MainScreen(
 						resultPrice2 != null &&
 						resultPrice1 < resultPrice2
 					) {
-						Color(0xFFB1E3B3)
+						cheaperBackground
 					} else {
 						Color.Transparent
 					}
@@ -288,23 +197,25 @@ fun MainScreen(
 				.padding(12.dp),
 			verticalArrangement = Arrangement.spacedBy(12.dp)
 		) {
-
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
-
-				Text("Товар 1")
+				Text(
+					text = "Товар 1",
+					color = colors.onBackground
+				)
 
 				if (resultPrice1 != null) {
 					Text(
-						"%.2f ₽/%s".format(resultPrice1, unit)
+						text = "%.2f ₽/%s".format(resultPrice1, unit),
+						color = colors.onBackground
 					)
 				}
 			}
 
-			OutlinedTextField(
+			AppOutlinedTextField(
 				value = price1,
 				onValueChange = { value ->
 					if (isValidNumber(value)) {
@@ -313,13 +224,14 @@ fun MainScreen(
 						onResultPrice2Change(null)
 					}
 				},
-				label = {
-					Text("Цена, ₽")
-				},
-				modifier = Modifier.fillMaxWidth()
+				label = "Цена, ₽",
+				modifier = Modifier.fillMaxWidth(),
+				keyboardOptions = KeyboardOptions(
+					keyboardType = KeyboardType.Decimal
+				)
 			)
 
-			OutlinedTextField(
+			AppOutlinedTextField(
 				value = quantity1,
 				onValueChange = { value ->
 					if (isValidNumber(value)) {
@@ -328,10 +240,11 @@ fun MainScreen(
 						onResultPrice2Change(null)
 					}
 				},
-				label = {
-					Text("Количество, $unit")
-				},
-				modifier = Modifier.fillMaxWidth()
+				label = "Количество",
+				modifier = Modifier.fillMaxWidth(),
+				keyboardOptions = KeyboardOptions(
+					keyboardType = KeyboardType.Decimal
+				)
 			)
 		}
 
@@ -344,7 +257,7 @@ fun MainScreen(
 						resultPrice2 != null &&
 						resultPrice2 < resultPrice1
 					) {
-						Color(0xFFB1E3B3)
+						cheaperBackground
 					} else {
 						Color.Transparent
 					}
@@ -352,23 +265,25 @@ fun MainScreen(
 				.padding(12.dp),
 			verticalArrangement = Arrangement.spacedBy(12.dp)
 		) {
-
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
-
-				Text("Товар 2")
+				Text(
+					text = "Товар 2",
+					color = colors.onBackground
+				)
 
 				if (resultPrice2 != null) {
 					Text(
-						"%.2f ₽/%s".format(resultPrice2, unit)
+						text = "%.2f ₽/%s".format(resultPrice2, unit),
+						color = colors.onBackground
 					)
 				}
 			}
 
-			OutlinedTextField(
+			AppOutlinedTextField(
 				value = price2,
 				onValueChange = { value ->
 					if (isValidNumber(value)) {
@@ -377,13 +292,14 @@ fun MainScreen(
 						onResultPrice2Change(null)
 					}
 				},
-				label = {
-					Text("Цена, ₽")
-				},
-				modifier = Modifier.fillMaxWidth()
+				label = "Цена, ₽",
+				modifier = Modifier.fillMaxWidth(),
+				keyboardOptions = KeyboardOptions(
+					keyboardType = KeyboardType.Decimal
+				)
 			)
 
-			OutlinedTextField(
+			AppOutlinedTextField(
 				value = quantity2,
 				onValueChange = { value ->
 					if (isValidNumber(value)) {
@@ -392,16 +308,29 @@ fun MainScreen(
 						onResultPrice2Change(null)
 					}
 				},
-				label = {
-					Text("Количество, $unit")
-				},
-				modifier = Modifier.fillMaxWidth()
+				label = "Количество",
+				modifier = Modifier.fillMaxWidth(),
+				keyboardOptions = KeyboardOptions(
+					keyboardType = KeyboardType.Decimal
+				)
+			)
+		}
+
+		if (
+			resultPrice1 != null &&
+			resultPrice2 != null &&
+			kotlin.math.abs(resultPrice1 - resultPrice2) < 0.000001
+		) {
+			Text(
+				text = "Цена одинаковая",
+				color = colors.onBackground,
+				modifier = Modifier.fillMaxWidth(),
+				textAlign = TextAlign.Center
 			)
 		}
 
 		Button(
 			onClick = {
-
 				val price1Value = price1.toDoubleOrNull()
 				val quantity1Value = quantity1.toDoubleOrNull()
 				val price2Value = price2.toDoubleOrNull()
@@ -415,7 +344,6 @@ fun MainScreen(
 					quantity1Value > 0 &&
 					quantity2Value > 0
 				) {
-
 					val result1 = price1Value / quantity1Value
 					val result2 = price2Value / quantity2Value
 
@@ -440,15 +368,12 @@ fun MainScreen(
 					)
 				}
 			},
-
 			enabled =
 				price1.toDoubleOrNull()?.let { it >= 0 } == true &&
 						quantity1.toDoubleOrNull()?.let { it > 0 } == true &&
 						price2.toDoubleOrNull()?.let { it >= 0 } == true &&
 						quantity2.toDoubleOrNull()?.let { it > 0 } == true,
-
 			modifier = Modifier.fillMaxWidth()
-
 		) {
 			Text("Сравнить")
 		}

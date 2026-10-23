@@ -35,4 +35,14 @@ interface SettingsDao {
 
 	@Query("UPDATE settings SET tank_capacity = :tankCapacity")
 	suspend fun updateTankCapacity(tankCapacity: Double)
+
+	@Query("""
+    UPDATE settings
+    SET theme_mode = :themeMode,
+        theme_manually_selected = 1
+	""")
+	suspend fun updateThemeMode(themeMode: String)
+
+	@Query("UPDATE settings SET unit_order = :unitOrder")
+	suspend fun updateUnitOrder(unitOrder: String)
 }

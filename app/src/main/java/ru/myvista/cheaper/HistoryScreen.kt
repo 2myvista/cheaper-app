@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
 
 @Composable
 fun HistoryScreen(
@@ -50,6 +52,7 @@ fun HistoryScreen(
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.background)
 			.padding(16.dp),
 		verticalArrangement = Arrangement.spacedBy(12.dp)
 	) {
@@ -74,10 +77,15 @@ fun HistoryScreen(
 			}
 		}
 
-		Text("История")
+		Text("История",
+			color = MaterialTheme.colorScheme.onBackground
+		)
 
 		if (history.isEmpty()) {
-			Text("История пуста")
+			Text(
+				text ="История пуста",
+				color = MaterialTheme.colorScheme.onBackground
+			)
 		} else {
 			LazyColumn(
 				modifier = Modifier.fillMaxWidth(),
@@ -91,7 +99,9 @@ fun HistoryScreen(
 				groupedHistory.forEach { (date, indexedItems) ->
 
 					item {
-						Text("======= $date")
+						Text("======= $date",
+							color = MaterialTheme.colorScheme.onBackground
+						)
 					}
 
 					itemsIndexed(indexedItems) { _, indexedItem ->
@@ -104,9 +114,12 @@ fun HistoryScreen(
 								.clickable {
 									onItemClick(item)
 								},
+							colors = androidx.compose.material3.CardDefaults.cardColors(
+								containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface
+							),
 							border = BorderStroke(
 								1.dp,
-								Color.LightGray
+								androidx.compose.material3.MaterialTheme.colorScheme.outline
 							)
 						) {
 							Column(

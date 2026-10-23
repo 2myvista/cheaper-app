@@ -9,27 +9,28 @@ class DatabaseInitializer(
 
 	suspend fun initialize() {
 		database.withTransaction {
-			val units = database.unitDao().getAll().first()
+			val unitDao = database.unitDao()
 
-			if (units.isEmpty()) {
-				val defaultUnits = listOf(
-					UnitEntity(name = "г", sortOrder = 0),
-					UnitEntity(name = "кг", sortOrder = 1),
-					UnitEntity(name = "мл", sortOrder = 2),
-					UnitEntity(name = "л", sortOrder = 3),
-					UnitEntity(name = "шт", sortOrder = 4)
-				)
+			val defaultUnitNames = listOf("г", "кг", "мл", "л", "шт")
 
-				defaultUnits.forEach { unit ->
-					database.unitDao().insert(unit)
+			val remainingUnits = unitDao.getAll().first()
+
+			val existingNames = remainingUnits.map { it.name }.toSet()
+
+			defaultUnitNames.forEachIndexed { index, name ->
+				if (name !in existingNames) {
+					unitDao.insert(
+						UnitEntity(
+							name = name,
+							sortOrder = index
+						)
+					)
 				}
 			}
-
 			val settings = database.settingsDao().getSettings().first()
 
 			if (settings == null) {
-				val kgUnit = database.unitDao()
-					.getAll()
+				val kgUnit = unitDao.getAll()
 					.first()
 					.first { it.name == "кг" }
 

@@ -1,21 +1,30 @@
 package ru.myvista.cheaper
 
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Row
-import androidx.compose.ui.Alignment
 import androidx.compose.material3.Checkbox
-import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ru.myvista.cheaper.ui.theme.AppOutlinedTextField
 
 @Composable
 fun FuelScreen(
@@ -28,35 +37,51 @@ fun FuelScreen(
 	result: String,
 	onResultChange: (String) -> Unit,
 ) {
+	val colors = MaterialTheme.colorScheme
+	val focusManager = LocalFocusManager.current
+	val scrollState = rememberScrollState()
 
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
+			.background(colors.background)
+			.clickable(
+				interactionSource = remember { MutableInteractionSource() },
+				indication = null
+			) {
+				focusManager.clearFocus()
+			}
+			.verticalScroll(scrollState)
 			.padding(16.dp),
 		verticalArrangement = Arrangement.spacedBy(12.dp)
 	) {
-
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
 			verticalAlignment = Alignment.CenterVertically
 		) {
-			Text("Бензин")
+			Text(
+				text = "Бензин",
+				color = colors.onBackground
+			)
 		}
 
 		Column(
 			verticalArrangement = Arrangement.spacedBy(0.dp)
 		) {
-			OutlinedTextField(
+			AppOutlinedTextField(
 				value = tankCapacity,
-				onValueChange = {
-					onTankCapacityChange(it)
-					onTankCapacityDefaultChange(false)
+				onValueChange = { value ->
+					if (isValidNumber(value)) {
+						onTankCapacityChange(value)
+						onResultChange("")
+					}
 				},
-				label = {
-					Text("Объём бака, л")
-				},
-				modifier = Modifier.fillMaxWidth()
+				label = "Объём бака, л",
+				modifier = Modifier.fillMaxWidth(),
+				keyboardOptions = KeyboardOptions(
+					keyboardType = KeyboardType.Decimal
+				)
 			)
 
 			Row(
@@ -64,59 +89,65 @@ fun FuelScreen(
 			) {
 				Checkbox(
 					checked = tankCapacityIsDefault,
-					onCheckedChange = onTankCapacityDefaultChange
+					onCheckedChange = { checked ->
+						onTankCapacityDefaultChange(checked)
+						focusManager.clearFocus()
+					}
 				)
 
 				Text(
 					text = "По умолчанию",
 					fontSize = 11.sp,
-					color = Color.Gray
+					color = colors.onSurfaceVariant
 				)
 			}
 		}
 
-		OutlinedTextField(
+		AppOutlinedTextField(
 			value = fuelPercent,
-			onValueChange = onFuelPercentChange,
-			label = {
-				Text("Заполнено, %")
+			onValueChange = { value ->
+				if (isValidNumber(value)) {
+					onFuelPercentChange(value)
+					onResultChange("")
+				}
 			},
-			modifier = Modifier.fillMaxWidth()
+			label = "Заполнено, %",
+			modifier = Modifier.fillMaxWidth(),
+			keyboardOptions = KeyboardOptions(
+				keyboardType = KeyboardType.Decimal
+			)
 		)
 
 		Button(
 			onClick = {
+				focusManager.clearFocus()
 
 				val capacity = tankCapacity.toDoubleOrNull()
 				val percent = fuelPercent.toDoubleOrNull()
 
 				if (capacity != null && percent != null) {
-
-					val liters =
-						capacity * (100 - percent) / 100
+					val liters = capacity * (100 - percent) / 100
 
 					onResultChange(
 						"Нужно залить: %.2f л".format(liters)
 					)
 				}
 			},
-
 			enabled =
-				tankCapacity.toDoubleOrNull()?.let {
-					it > 0
-				} == true &&
+				tankCapacity.toDoubleOrNull()?.let { it > 0 } == true &&
 						fuelPercent.toDoubleOrNull()?.let {
 							it in 0.0..100.0
 						} == true,
-
 			modifier = Modifier.fillMaxWidth()
-
 		) {
 			Text("Рассчитать")
 		}
 
 		if (result.isNotEmpty()) {
-			Text(result)
+			Text(
+				text = result,
+				color = colors.onBackground
+			)
 		}
 	}
 }
