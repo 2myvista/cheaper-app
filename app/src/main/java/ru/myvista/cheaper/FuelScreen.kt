@@ -126,11 +126,16 @@ fun FuelScreen(
 				val percent = fuelPercent.toDoubleOrNull()
 
 				if (capacity != null && percent != null) {
-					val liters = capacity * (100 - percent) / 100
-
-					onResultChange(
-						"Нужно залить: %.2f л".format(liters)
+					val liters = FuelCalculator.calculateLiters(
+						capacity = capacity,
+						percent = percent
 					)
+
+					if (liters != null) {
+						onResultChange(
+							"Нужно залить: %.2f л".format(liters)
+						)
+					}
 				}
 			},
 			enabled =
